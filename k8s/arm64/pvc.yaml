@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: codesys-arm64-data-pvc
+  namespace: codesys
+  labels:
+    app: codesys
+    arch: arm64
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: local-path  # k3s default storage class

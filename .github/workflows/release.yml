@@ -1,0 +1,72 @@
+# GitHub Release Workflow for CODESYS Docker Images
+name: Release CODESYS Images
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        draft: false
+        prerelease: false
+        body: |
+          ## CODESYS Control for Linux ARM SL Release
+          
+          This release contains Docker images for CODESYS Control Runtime for both ARM architectures.
+          
+          ### Included Images
+          - **ARM64 (ARMv8)**: `codesys-arm64-*.tar`
+          - **ARM32 (ARMv7)**: `codesys-arm32-*.tar`
+          
+          ### Deployment
+          1. Download the appropriate image for your architecture
+          2. Follow the deployment instructions in the README
+          3. Use the provided k8s manifests to deploy to k3s
+          
+          ### Prerequisites
+          - k3s or Kubernetes cluster
+          - Docker runtime
+          - kubectl CLI
+          
+          For detailed instructions, see [README.md](README.md)
+    
+    - name: Upload ARM64 Image
+      if: hashFiles('images/codesys-arm64*.tar') != ''
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./images/codesys-arm64.tar
+        asset_name: codesys-arm64-${{ github.ref_name }}.tar
+        asset_content_type: application/x-tar
+    
+    - name: Upload ARM32 Image
+      if: hashFiles('images/codesys-arm32*.tar') != ''
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./images/codesys-arm32.tar
+        asset_name: codesys-arm32-${{ github.ref_name }}.tar
+        asset_content_type: application/x-tar

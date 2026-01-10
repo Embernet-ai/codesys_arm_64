@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: codesys-arm32
+  namespace: codesys
+  labels:
+    app: codesys
+    arch: arm32
+spec:
+  type: LoadBalancer
+  selector:
+    app: codesys
+    arch: arm32
+  ports:
+  - name: plc-comm
+    protocol: TCP
+    port: 1217
+    targetPort: 1217
+  - name: web-visu
+    protocol: TCP
+    port: 8080
+    targetPort: 8080
+  - name: opc-ua
+    protocol: TCP
+    port: 4840
+    targetPort: 4840
+  sessionAffinity: ClientIP

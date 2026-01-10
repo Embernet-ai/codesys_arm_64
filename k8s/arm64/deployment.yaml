@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: codesys-arm64
+  namespace: codesys
+  labels:
+    app: codesys
+    arch: arm64
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: codesys
+      arch: arm64
+  template:
+    metadata:
+      labels:
+        app: codesys
+        arch: arm64
+    spec:
+      # Node selector to ensure deployment on ARM64 nodes
+      nodeSelector:
+        kubernetes.io/arch: arm64
+      
+      containers:
+      - name: codesys-runtime
+        image: localhost:5000/codesys-arm64:latest  # Update with your registry
+        imagePullPolicy: IfNotPresent
+        
+        ports:
+        - name: plc-comm
+          containerPort: 1217
+          protocol: TCP
+        - name: web-visu
+          containerPort: 8080
+          protocol: TCP
+        - name: opc-ua
+          containerPort: 4840
+          protocol: TCP
+        
+        # Resource limits
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        
+        # Volume mounts for persistent data
+        volumeMounts:
+        - name: codesys-data
+          mountPath: /var/opt/codesys
+        - name: codesys-config
+          mountPath: /etc/opt/codesys
+        
+        # Environment variables
+        env:
+        - name: TZ
+          value: "UTC"
+        
+        # Security context
+        securityContext:
+          privileged: false
+          capabilities:
+            add:
+            - NET_ADMIN
+            - SYS_NICE
+        
+        # Liveness and readiness probes
+        livenessProbe:
+          tcpSocket:
+            port: 1217
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        readinessProbe:
+          tcpSocket:
+            port: 1217
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+      
+      volumes:
+      - name: codesys-data
+        persistentVolumeClaim:
+          claimName: codesys-arm64-data-pvc
+      - name: codesys-config
+        configMap:
+          name: codesys-arm64-config
+          optional: true
+      
+      # Restart policy
+      restartPolicy: Always

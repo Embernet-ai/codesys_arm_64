@@ -1,0 +1,32 @@
+# Docker images - these are large binary files from CODESYS
+images/*.tar
+images/*.tar.gz
+
+# Kubernetes secrets
+k8s/**/secrets.yaml
+k8s/**/*secret*.yaml
+
+# Local development files
+*.local
+.env
+.env.local
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
