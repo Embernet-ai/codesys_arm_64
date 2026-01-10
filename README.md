@@ -1,15 +1,22 @@
 # CODESYS Control for Linux ARM SL - Kubernetes Deployment
 
-*Because running industrial automation software in containers on a Raspberry Pi is totally a normal Friday night activity* 🍕
+*Because running industrial automation software in containers on ARM Silicone is totally a normal Friday night activity* 🍕
 
 ## Overview
 
-Look, we've all been there. You downloaded those CODESYS Docker images thinking "this will be easy," and now you're Googling "how to k8s" at 2 AM. Well, congratulations! You've found the repository that will either save your weekend or ruin it completely. 50/50 odds.
+Look, we've all been there. Your customer wants CODESYS running in containers, on ARM hardware, orchestrated by k3s, in a multi-tenant environment. Because apparently "just run it on a PLC" wasn't hipster enough.
 
-This repo contains everything you need to yeet CODESYS Control Runtime into the cloud (or your desk, we don't judge). Supports both ARM architectures because apparently we can't just pick one:
+Well, congratulations! You've found the repository that will either make you look like a DevOps wizard or have you questioning your career choices at 2 AM. 50/50 odds.
 
-- **ARM64 (ARMv8)**: For people with money (Raspberry Pi 4, NVIDIA Jetson)
-- **ARM32 (ARMv7)**: For people who "still have a Pi 3 laying around" (it's e-waste, Karen)
+This repo contains everything you need to deploy CODESYS Control Runtime as production-ready Kubernetes pods. Perfect for:
+- **Systems Integrators** shipping pre-configured CODESYS environments to customers
+- **Multi-tenant k3s deployments** where each customer gets their own isolated PLC runtime
+- **Edge computing scenarios** where "the cloud" is actually a Raspberry Pi in a dusty electrical cabinet
+
+Supports both ARM architectures because the industry can't agree on anything:
+
+- **ARM64 (ARMv8)**: Modern hardware (Raspberry Pi 4, NVIDIA Jetson, that expensive thing from Advantech)
+- **ARM32 (ARMv7)**: Legacy hardware (Raspberry Pi 3, "we bought 500 of these in 2018")
 
 ## Features
 
@@ -26,19 +33,28 @@ This repo contains everything you need to yeet CODESYS Control Runtime into the 
 
 ## Architecture
 
-*It's containers all the way down*
+*It's containers all the way down (multi-tenant edition)*
 
 ```
-CODESYS Control Runtime (the PLC that thinks it's special)
-    ↓
-Docker Container (prison for processes)
-    ↓
-Kubernetes Pod (fancy name for "container with extra steps")
-    ↓
-LoadBalancer Service (so other things can find your container prison)
-    ↓
-Your hopes and dreams (optional)
+Customer A's CODESYS Runtime ──┐
+Customer B's CODESYS Runtime ──┼─→ k3s Cluster (namespace isolation)
+Customer C's CODESYS Runtime ──┘       ↓
+                              Persistent Storage (PVCs)
+                                      ↓
+                              LoadBalancer/NodePort
+                                      ↓
+                              Customer Networks
+                                      ↓
+                              CODESYS IDE Connections
+                                      ↓
+                              Profit 💰 (hopefully)
 ```
+
+**Each deployment gets:**
+- Dedicated Kubernetes namespace (Customer A can't see Customer B's stuff)
+- Isolated persistent storage (because data breaches are bad for business)
+- Separate service endpoints (no port conflicts, no drama)
+- Resource limits (one customer can't hog all the RAM)
 
 ### Exposed Ports
 
@@ -90,9 +106,13 @@ Your hopes and dreams (optional)
 
 ### 1. Download CODESYS Docker Images
 
-Download the Docker images from:
-- CODESYS Store: https://store.codesys.com (prepare your credit card)
-- GitHub Releases (this repository - if I ever get around to uploading them)
+**For SI Partners/Customers:**
+
+Download the pre-built Docker images from:
+- **GitHub Releases**: Check the [Releases page](../../releases) of this repository
+- **Azure Blob Storage**: Contact your SI for the storage URL (if we went that route)
+
+Original source: [CODESYS Control for Linux ARM SL](https://store.codesys.com/en/codesys-control-for-linux-arm-sl-1.html)
 
 Place the `.tar` files in an `images/` directory:
 ```
@@ -100,6 +120,8 @@ images/
 ├── codesys-arm64.tar  (thicc boi, probably 500MB+)
 └── codesys-arm32.tar  (slightly less thicc)
 ```
+
+> **⚠️ Licensing Note**: These images require a valid CODESYS license. If you're a customer, you should have purchased your license through us. If not, what are you doing here? Go buy a license. We have bills to pay.
 
 ### 2. Deploy to k3s
 
@@ -227,6 +249,35 @@ The configuration is loaded via ConfigMap. After changes:
 kubectl rollout restart deployment/codesys-arm64 -n codesys
 ```
 
+### Multi-Tenant Deployment
+
+*Deploying for multiple customers on the same k3s cluster*
+
+Each customer gets their own namespace for isolation:
+
+```bash
+# Customer A deployment
+kubectl create namespace customer-a
+kubectl apply -f k8s/namespace.yaml -n customer-a
+cd k8s/arm64
+./deploy.sh ../../images/codesys-arm64.tar
+# Edit deployment to use namespace: customer-a
+
+# Customer B deployment
+kubectl create namespace customer-b
+kubectl apply -f k8s/namespace.yaml -n customer-b
+cd k8s/arm64
+./deploy.sh ../../images/codesys-arm64.tar
+# Edit deployment to use namespace: customer-b
+```
+
+**Pro Tips for Multi-Tenant:**
+- Use different service ports or LoadBalancer IPs per customer
+- Set resource quotas per namespace (prevent one customer from killing the cluster)
+- Use NetworkPolicies to isolate customer traffic
+- Label everything with customer ID for billing/monitoring
+- Document which customer owns which namespace (spreadsheets are your friend)
+
 ### Scaling Replicas
 
 *Because one PLC wasn't enough chaos*
@@ -239,7 +290,7 @@ kubectl scale deployment/codesys-arm64 -n codesys --replicas=3
 kubectl scale deployment/codesys-arm32 -n codesys --replicas=2
 ```
 
-**Reality Check**: For PLC applications, you typically run a single replica. Multiple replicas are useful for redundancy, but please don't blame me when your state management becomes a nightmare.
+**Reality Check**: For PLC applications, you typically run a single replica per customer. Multiple replicas are useful for HA/redundancy, but please don't blame me when your state management becomes a nightmare.
 
 ### Persistent Storage
 
@@ -364,38 +415,69 @@ Translation: "The container is running but good luck talking to it."
 5. Cry
 6. Try turning it off and on again
 
-## GitHub Releases
+## Hosting Options for SI Partners
 
-*For when you want to share your containerized chaos with the world*
+*Because your customers need to download this somehow*
 
-### Creating a Release
+### Option 1: GitHub Releases (The Easy Way)
 
-1. Tag your repository (semantic versioning because we're professionals):
+**Pros**: Free, built-in versioning, customers can download directly
+**Cons**: 2GB file size limit per asset (might be tight), public unless you pay
+
+1. Tag your repository:
    ```bash
-   git tag -a v1.0.0 -m "Release v1.0.0 - It works on my machine™"
+   git tag -a v1.0.0 -m "Release v1.0.0 - CODESYS ARM SL"
    git push origin v1.0.0
    ```
 
 2. Place Docker images in `images/` directory:
    ```
    images/
-   ├── codesys-arm64.tar  (thicc)
-   └── codesys-arm32.tar  (also thicc)
+   ├── codesys-arm64.tar  (source: CODESYS Store)
+   └── codesys-arm32.tar  (source: CODESYS Store)
    ```
 
-3. GitHub Actions will automatically:
-   - Create a release (robots doing work)
-   - Upload Docker images as release assets (if they fit, these files are CHONKY)
-   - Generate release notes (with varying degrees of usefulness)
+3. Manually upload to GitHub Release:
+   - Go to repository Releases
+   - Create new release from your tag
+   - Upload both `.tar` files (grab coffee, this takes a while)
+   - Add release notes with licensing info
 
-### Manual Upload
+### Option 2: Azure Blob Storage (The Professional Way)
 
-If GitHub Actions ghost you (they will):
+**Pros**: Handles large files, private access, can use CDN, looks enterprise-y
+**Cons**: Costs money, requires Azure setup
 
-1. Go to repository Releases (it's a tab, you'll find it)
-2. Create new release (click buttons, feel powerful)
-3. Upload `codesys-arm64.tar` and `codesys-arm32.tar` (RIP your internet connection)
-4. Add release notes (or don't, we're not your mom)
+```bash
+# Upload to Azure Blob Storage (requires Azure CLI)
+az storage blob upload \
+  --account-name <your-storage-account> \
+  --container-name codesys-images \
+  --name codesys-arm64.tar \
+  --file images/codesys-arm64.tar \
+  --auth-mode key
+
+# Generate SAS token for customer access (expires in 1 year)
+az storage blob generate-sas \
+  --account-name <your-storage-account> \
+  --container-name codesys-images \
+  --name codesys-arm64.tar \
+  --permissions r \
+  --expiry $(date -u -d "1 year" '+%Y-%m-%dT%H:%MZ') \
+  --https-only \
+  --output tsv
+```
+
+Then give customers the download URL:
+```
+https://<storage-account>.blob.core.windows.net/codesys-images/codesys-arm64.tar?<sas-token>
+```
+
+### Option 3: Why Not Both? 🤷
+
+- Host on GitHub for easy customer access
+- Mirror to Azure as backup/fallback
+- Sleep better at night knowing you have redundancy
 
 ## Project Structure
 
@@ -497,13 +579,27 @@ kubectl exec -n codesys <pod-name> -- tar czf - /var/opt/codesys > backup.tar.gz
 kubectl exec -n codesys <pod-name> -- tar xzf - -C / < backup.tar.gz
 ```
 
-## License
+## Licensing
 
-This repository contains deployment configurations and scripts. CODESYS software is licensed separately by CODESYS GmbH. 
+**The Legal Stuff (Actually Important):**
 
-**Translation**: The scripts are free, the software isn't. Don't @ me, take it up with CODESYS.
+This repository contains deployment configurations and scripts (free, open, do whatever). 
 
-Ensure you have appropriate licenses before deploying. We're not your lawyers.
+CODESYS Control for Linux ARM SL is licensed software from CODESYS GmbH.
+
+**For Customers:**
+- You must purchase a valid CODESYS license to use these images
+- Licenses should be purchased through your Systems Integrator (that's us, hi! 👋)
+- Each runtime instance needs its own license (yes, even in containers)
+- Don't try to pirate this, CODESYS has licensing servers and they WILL notice
+
+**For SI Partners:**
+- Original download: [CODESYS Store](https://store.codesys.com/en/codesys-control-for-linux-arm-sl-1.html)
+- Ensure you have appropriate CODESYS partner agreements before redistributing
+- Track which customers have which licenses (spreadsheet time!)
+- When in doubt, contact CODESYS legal (better safe than sued)
+
+**Translation**: The deployment scripts are free, the software isn't. We handle licensing through CODESYS proper channels. Don't @ us about cracks or keygens.
 
 ## Resources
 
@@ -519,10 +615,12 @@ Ensure you have appropriate licenses before deploying. We're not your lawyers.
 ## Support
 
 For issues with:
-- **CODESYS software**: Contact CODESYS support (they get paid for this)
-- **Deployment scripts/manifests**: Open an issue (I get paid in stars ⭐)
-- **k3s/Kubernetes**: Read the fine manual (RTFM)
-- **Your life choices**: Therapy (seriously, it helps)
+- **CODESYS software/licensing**: Contact your SI (that's us) or CODESYS support
+- **Deployment scripts/manifests**: Open an issue here (we get paid in GitHub stars ⭐ and customer satisfaction)
+- **k3s/Kubernetes**: Read the fine manual (RTFM), check Stack Overflow, sacrifice a USB cable to the demo gods
+- **Multi-tenant deployment questions**: Open an issue, we've been there
+- **Customer onboarding**: That's what you pay us for 😎
+- **Your life choices**: Therapy (seriously, working with industrial automation requires it)
 
 ## Contributing
 
