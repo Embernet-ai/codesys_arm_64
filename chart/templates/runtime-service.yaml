@@ -1,0 +1,42 @@
+{{- if .Values.runtime.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "codesys-runtime-arm.fullname" . }}-runtime
+  namespace: {{ include "codesys-runtime-arm.namespace" . }}
+  labels:
+    {{- include "codesys-runtime-arm.runtime.labels" . | nindent 4 }}
+  {{- with .Values.runtime.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.runtime.service.type }}
+  {{- if and (eq .Values.runtime.service.type "LoadBalancer") .Values.runtime.service.loadBalancerIP }}
+  loadBalancerIP: {{ .Values.runtime.service.loadBalancerIP }}
+  {{- end }}
+  ports:
+    - port: {{ .Values.runtime.service.ports.codesys.port }}
+      targetPort: runtime
+      protocol: {{ .Values.runtime.service.ports.codesys.protocol }}
+      name: codesys
+      {{- if and (eq .Values.runtime.service.type "NodePort") .Values.runtime.service.ports.codesys.nodePort }}
+      nodePort: {{ .Values.runtime.service.ports.codesys.nodePort }}
+      {{- end }}
+    - port: {{ .Values.runtime.service.ports.opcua.port }}
+      targetPort: opcua
+      protocol: {{ .Values.runtime.service.ports.opcua.protocol }}
+      name: opcua
+      {{- if and (eq .Values.runtime.service.type "NodePort") .Values.runtime.service.ports.opcua.nodePort }}
+      nodePort: {{ .Values.runtime.service.ports.opcua.nodePort }}
+      {{- end }}
+    - port: {{ .Values.runtime.service.ports.webvisu.port }}
+      targetPort: webvisu
+      protocol: {{ .Values.runtime.service.ports.webvisu.protocol }}
+      name: webvisu
+      {{- if and (eq .Values.runtime.service.type "NodePort") .Values.runtime.service.ports.webvisu.nodePort }}
+      nodePort: {{ .Values.runtime.service.ports.webvisu.nodePort }}
+      {{- end }}
+  selector:
+    {{- include "codesys-runtime-arm.runtime.selectorLabels" . | nindent 4 }}
+{{- end }}

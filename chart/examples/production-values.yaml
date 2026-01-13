@@ -1,0 +1,287 @@
+# Production CODESYS Deployment Example
+# This configuration is for production deployments with proper licensing
+# and security hardening.
+
+# Namespace configuration
+namespace:
+  name: codesys-production
+  labels:
+    environment: production
+    team: automation
+
+#############################################
+# PLC Runtime Configuration
+#############################################
+runtime:
+  enabled: true
+  
+  # Architecture selection
+  architecture:
+    type: arm64  # or arm32 for ARMv7 devices
+  
+  image:
+    repository: codesys/codesyscontrol-linux-arm
+    tag: "4.18.0.0"
+    pullPolicy: IfNotPresent
+  
+  # Production resources - large preset for real workloads
+  resources:
+    preset: large  # 1000m-2000m CPU, 1Gi-2Gi RAM
+    # Override with custom if needed:
+    # custom:
+    #   requests:
+    #     cpu: "2000m"
+    #     memory: "2Gi"
+    #   limits:
+    #     cpu: "4000m"
+    #     memory: "4Gi"
+  
+  # Persistent storage for PLC programs and retains
+  persistence:
+    enabled: true
+    storageClass: fast-ssd  # Use fast storage class
+    size: 20Gi  # Larger size for production data
+    accessMode: ReadWriteOnce
+  
+  # Service configuration - LoadBalancer for external access
+  service:
+    type: LoadBalancer
+    annotations:
+      # metallb.universe.tf/address-pool: production-pool
+      # service.beta.kubernetes.io/aws-load-balancer-type: nlb
+    ports:
+      codesys:
+        port: 1217
+        targetPort: 1217
+        nodePort: null  # Auto-assign
+      opcua:
+        port: 4840
+        targetPort: 4840
+        nodePort: null
+  
+  # Security context - privileged required for I/O
+  securityContext:
+    privileged: true
+    capabilities:
+      add:
+        - SYS_ADMIN
+        - SYS_NICE
+        - SYS_RAWIO
+        - NET_ADMIN
+        - IPC_LOCK
+    allowPrivilegeEscalation: true
+    runAsNonRoot: false
+  
+  # Host network for fieldbus access (if required)
+  hostNetwork: false  # Enable if using EtherCAT/PROFINET adapters
+  dnsPolicy: ClusterFirst
+  
+  # Runtime configuration
+  config:
+    # PRODUCTION LICENSE - replace with your actual license
+    license:
+      type: soft-container  # or usb-dongle for USB license key
+      # For soft-container license, provide base64-encoded license file:
+      # content: "BASE64_ENCODED_LICENSE_FILE_CONTENT_HERE"
+    
+    # Runtime settings
+    runtimeMode: Release  # Release mode for production
+    enableDiagnostics: true
+    logLevel: Warning  # Reduce verbosity for production
+    
+    # Real-time configuration (requires RT kernel on node)
+    realtime:
+      enabled: true
+      priority: 80
+  
+  # Liveness and readiness probes
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 60
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 3
+  
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  
+  # Node affinity - deploy to dedicated PLC nodes
+  nodeSelector:
+    node-role.kubernetes.io/plc: "true"
+  
+  tolerations:
+    - key: "plc-workload"
+      operator: "Equal"
+      value: "true"
+      effect: "NoSchedule"
+  
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                  - arm64
+              - key: node-role.kubernetes.io/plc
+                operator: Exists
+
+#############################################
+# WebVisu Configuration
+#############################################
+webvisu:
+  enabled: true
+  
+  image:
+    repository: codesys/codesys-webvisu
+    tag: "4.18.0.0"
+    pullPolicy: IfNotPresent
+  
+  # Production resources
+  resources:
+    preset: large  # 500m-2000m CPU, 512Mi-2Gi RAM
+  
+  # Service configuration
+  service:
+    type: LoadBalancer
+    annotations: {}
+    ports:
+      http:
+        port: 8080
+        targetPort: 8080
+        nodePort: null
+      https:
+        port: 8443
+        targetPort: 8443
+        nodePort: null
+  
+  # Ingress for WebVisu (with TLS)
+  ingress:
+    enabled: true
+    className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    hosts:
+      - host: plc-hmi.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: plc-hmi-tls
+        hosts:
+          - plc-hmi.example.com
+  
+  # Security context - hardened for web exposure
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    fsGroup: 65534
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+  
+  # Authentication configuration
+  auth:
+    enabled: true
+    # Configure in CODESYS project, not in Helm values
+  
+  # Probes
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 30
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 3
+  
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 15
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  
+  # Deploy to general nodes (doesn't need special hardware)
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+#############################################
+# Monitoring & Observability
+#############################################
+monitoring:
+  enabled: true
+  
+  # ServiceMonitor for Prometheus Operator
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+    scrapeTimeout: 10s
+    labels:
+      prometheus: kube-prometheus
+  
+  # Grafana dashboard ConfigMap
+  grafanaDashboard:
+    enabled: true
+    labels:
+      grafana_dashboard: "1"
+
+#############################################
+# Pod Disruption Budget
+#############################################
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1  # Ensure at least one runtime pod always running
+
+#############################################
+# Network Policies
+#############################################
+networkPolicy:
+  enabled: true
+  
+  # Allow ingress from WebVisu to Runtime
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: webvisu
+      ports:
+        - protocol: TCP
+          port: 1217
+  
+  # Allow ingress from Prometheus
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+      ports:
+        - protocol: TCP
+          port: 9090
+  
+  # Egress to internet for time sync, etc
+  egress:
+    - to:
+        - namespaceSelector: {}
+    - ports:
+        - protocol: UDP
+          port: 53
+    - ports:
+        - protocol: TCP
+          port: 123
+
+#############################################
+# Backup Configuration
+#############################################
+backup:
+  enabled: true
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  retention: 30  # Keep 30 daily backups
+  storageClass: backup-storage

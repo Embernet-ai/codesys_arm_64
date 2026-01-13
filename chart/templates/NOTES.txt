@@ -1,0 +1,149 @@
+🎉 CODESYS Control for Linux ARM SL has been deployed!
+
+RELEASE: {{ .Release.Name }}
+NAMESPACE: {{ include "codesys-runtime-arm.namespace" . }}
+VERSION: {{ .Chart.AppVersion }}
+ARCHITECTURE: {{ .Values.runtime.architecture.type }}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 DEPLOYMENT INFO
+
+{{- if .Values.runtime.enabled }}
+  ✅ Runtime Status: DEPLOYED
+  - Architecture: {{ .Values.runtime.architecture.type | upper }}
+  - License Mode: {{ .Values.runtime.config.license.type | upper }}
+  {{- if eq .Values.runtime.config.license.type "demo" }}
+  - ⚠️  Demo Limitation: Runs for 2 hours, then requires manual restart
+  {{- end }}
+  - Resource Preset: {{ .Values.runtime.resources.preset }}
+  - Persistent Storage: {{ if .Values.runtime.persistence.enabled }}{{ .Values.runtime.persistence.size }}{{ else }}Disabled{{ end }}
+  - WebVisu Server: {{ if .Values.runtime.config.webvisu.enabled }}Enabled{{ else }}Disabled{{ end }}
+{{- else }}
+  ⚠️  Runtime: DISABLED
+{{- end }}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🌐 ACCESS INSTRUCTIONS
+
+{{- if .Values.runtime.enabled }}
+
+{{- if eq .Values.runtime.service.type "LoadBalancer" }}
+
+1️⃣ Get LoadBalancer IP address:
+
+   kubectl get svc {{ include "codesys-runtime-arm.fullname" . }}-runtime -n {{ include "codesys-runtime-arm.namespace" . }}
+
+2️⃣ Connect from CODESYS Development System:
+
+   RUNTIME_IP: <EXTERNAL-IP>:{{ .Values.runtime.service.ports.codesys.port }}
+
+3️⃣ Access WebVisu in browser:
+
+   http://<EXTERNAL-IP>:{{ .Values.runtime.service.ports.webvisu.port }}
+
+4️⃣ Connect OPC UA clients:
+
+   opc.tcp://<EXTERNAL-IP>:{{ .Values.runtime.service.ports.opcua.port }}
+
+{{- else if eq .Values.runtime.service.type "NodePort" }}
+
+1️⃣ Get Node IP and ports:
+
+   export NODE_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="ExternalIP")].address}')
+   export CODESYS_PORT=$(kubectl get svc {{ include "codesys-runtime-arm.fullname" . }}-runtime -n {{ include "codesys-runtime-arm.namespace" . }} -o jsonpath='{.spec.ports[?(@.name=="codesys")].nodePort}')
+   export WEBVISU_PORT=$(kubectl get svc {{ include "codesys-runtime-arm.fullname" . }}-runtime -n {{ include "codesys-runtime-arm.namespace" . }} -o jsonpath='{.spec.ports[?(@.name=="webvisu")].nodePort}')
+   export OPCUA_PORT=$(kubectl get svc {{ include "codesys-runtime-arm.fullname" . }}-runtime -n {{ include "codesys-runtime-arm.namespace" . }} -o jsonpath='{.spec.ports[?(@.name=="opcua")].nodePort}')
+
+2️⃣ Access points:
+
+   CODESYS Runtime: $NODE_IP:$CODESYS_PORT
+   WebVisu: http://$NODE_IP:$WEBVISU_PORT
+   OPC UA: opc.tcp://$NODE_IP:$OPCUA_PORT
+
+{{- else if eq .Values.runtime.service.type "ClusterIP" }}
+
+1️⃣ Port-forward for local access:
+
+   kubectl port-forward -n {{ include "codesys-runtime-arm.namespace" . }} svc/{{ include "codesys-runtime-arm.fullname" . }}-runtime {{ .Values.runtime.service.ports.codesys.port }}:{{ .Values.runtime.service.ports.codesys.port }}
+
+2️⃣ In another terminal for WebVisu:
+
+   kubectl port-forward -n {{ include "codesys-runtime-arm.namespace" . }} svc/{{ include "codesys-runtime-arm.fullname" . }}-runtime {{ .Values.runtime.service.ports.webvisu.port }}:{{ .Values.runtime.service.ports.webvisu.port }}
+
+3️⃣ Access locally:
+
+   CODESYS Runtime: localhost:{{ .Values.runtime.service.ports.codesys.port }}
+   WebVisu: http://localhost:{{ .Values.runtime.service.ports.webvisu.port }}
+
+{{- end }}
+
+{{- if .Values.runtime.ingress.enabled }}
+
+🌍 Ingress (WebVisu):
+   {{- range .Values.runtime.ingress.hosts }}
+   http{{ if $.Values.runtime.ingress.tls }}s{{ end }}://{{ .host }}
+   {{- end }}
+
+{{- end }}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔧 COMMON OPERATIONS
+
+Monitor Runtime Status:
+  kubectl get pods -n {{ include "codesys-runtime-arm.namespace" . }} -l app.kubernetes.io/component=plc-runtime
+
+View Runtime Logs:
+  kubectl logs -n {{ include "codesys-runtime-arm.namespace" . }} -l app.kubernetes.io/component=plc-runtime -f
+
+{{- if eq .Values.runtime.config.license.type "demo" }}
+
+Restart Runtime (Demo Mode Expired):
+  kubectl rollout restart deployment -n {{ include "codesys-runtime-arm.namespace" . }} {{ include "codesys-runtime-arm.fullname" . }}-runtime
+
+{{- end }}
+
+Check Runtime Health:
+  kubectl exec -n {{ include "codesys-runtime-arm.namespace" . }} -it deployment/{{ include "codesys-runtime-arm.fullname" . }}-runtime -- codesyscontrol status
+
+Scale Runtime (use with caution - PLC typically runs single instance):
+  kubectl scale deployment {{ include "codesys-runtime-arm.fullname" . }}-runtime -n {{ include "codesys-runtime-arm.namespace" . }} --replicas=1
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📚 NEXT STEPS
+
+1. Connect from CODESYS Development System (V3.5.17.0+)
+2. Download your IEC 61131-3 application to the runtime
+3. Access WebVisu at the HTTP endpoint for operator interface
+4. Configure OPC UA clients to connect to the OPC UA server
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚠️  IMPORTANT NOTES
+
+{{- if eq .Values.runtime.config.license.type "demo" }}
+• Demo mode runs for 2 hours, then stops automatically
+• Restart required after demo timeout using: kubectl rollout restart
+{{- end }}
+{{- if .Values.runtime.securityContext.privileged }}
+• Runtime runs in PRIVILEGED mode for I/O hardware access
+• This is required for fieldbus/GPIO but reduces container isolation
+{{- end }}
+• CODESYS officially does NOT support containers/VMs
+• Test thoroughly before production use
+• Backup PVC regularly to preserve PLC programs and retains
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📖 Documentation: https://github.com/fireball-industries/fireball-podstore-charts
+🐛 Issues: https://github.com/fireball-industries/fireball-podstore-charts/issues
+
+Built with 🔥 by Fireball Industries - Patrick Ryan
+Making industrial automation cloud-native since 2026
+
+{{- else }}
+⚠️  Runtime is disabled. Enable it in values.yaml
+{{- end }}

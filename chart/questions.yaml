@@ -1,0 +1,312 @@
+# Rancher Questions for CODESYS Runtime Chart
+# These questions appear in the Rancher Apps & Marketplace UI wizard
+
+categories:
+  - Industrial Automation
+  - PLC
+  - SCADA
+
+questions:
+
+# ==================== Architecture Configuration ====================
+- variable: runtime.architecture.type
+  default: "arm64"
+  description: "CPU Architecture - Select based on your hardware platform"
+  type: enum
+  label: CPU Architecture
+  group: "Architecture"
+  required: true
+  options:
+    - "arm32"
+    - "arm64"
+  show_subquestion_if: true
+  subquestions:
+    - variable: runtime.architecture.description
+      type: string
+      label: Architecture Info
+      description: "arm32 = ARMv7 (Raspberry Pi 2/3, older ARM boards) | arm64 = ARMv8/AArch64 (Raspberry Pi 4+, modern ARM)"
+      show_if: "runtime.architecture.type=arm64||runtime.architecture.type=arm32"
+
+# ==================== Namespace Configuration ====================
+- variable: namespace.name
+  default: "codesys-plc"
+  description: "Kubernetes namespace for CODESYS deployment"
+  type: string
+  label: Namespace
+  group: "Namespace"
+  required: true
+
+- variable: namespace.create
+  default: true
+  description: "Create the namespace if it doesn't exist"
+  type: boolean
+  label: Create Namespace
+  group: "Namespace"
+
+# ==================== License Configuration ====================
+- variable: runtime.config.license.type
+  default: "demo"
+  description: "License Type - Demo runs for 2 hours before requiring manual restart"
+  type: enum
+  label: License Type
+  group: "Licensing"
+  required: true
+  options:
+    - "demo"
+    - "soft-container"
+    - "usb-dongle"
+  show_subquestion_if: "soft-container"
+  subquestions:
+    - variable: runtime.config.license.content
+      type: multiline
+      label: Soft Container License
+      description: "Base64-encoded CODESYS license file content (for soft-container type)"
+
+# ==================== Image Configuration ====================
+- variable: runtime.image.repository
+  default: "codesys/codesyscontrol-linux-arm"
+  description: "Container image repository (customize if using private registry)"
+  type: string
+  label: Image Repository
+  group: "Container Image"
+  required: true
+
+- variable: runtime.image.tag
+  default: "4.18.0.0"
+  description: "CODESYS version"
+  type: string
+  label: Image Tag
+  group: "Container Image"
+  required: true
+
+- variable: runtime.image.pullPolicy
+  default: "IfNotPresent"
+  description: "Image pull policy"
+  type: enum
+  label: Image Pull Policy
+  group: "Container Image"
+  options:
+    - "IfNotPresent"
+    - "Always"
+    - "Never"
+
+# ==================== Resource Configuration ====================
+- variable: runtime.resources.preset
+  default: "medium"
+  description: "Resource allocation preset"
+  type: enum
+  label: Resource Preset
+  group: "Resources"
+  required: true
+  options:
+    - "small"
+    - "medium"
+    - "large"
+    - "custom"
+  show_subquestion_if: "custom"
+  subquestions:
+    - variable: runtime.resources.custom.requests.cpu
+      type: string
+      label: CPU Request
+      description: "Minimum CPU (e.g., 500m)"
+      default: "500m"
+    - variable: runtime.resources.custom.requests.memory
+      type: string
+      label: Memory Request
+      description: "Minimum memory (e.g., 512Mi)"
+      default: "512Mi"
+    - variable: runtime.resources.custom.limits.cpu
+      type: string
+      label: CPU Limit
+      description: "Maximum CPU (e.g., 1000m)"
+      default: "1000m"
+    - variable: runtime.resources.custom.limits.memory
+      type: string
+      label: Memory Limit
+      description: "Maximum memory (e.g., 1Gi)"
+      default: "1Gi"
+
+# ==================== Storage Configuration ====================
+- variable: runtime.persistence.enabled
+  default: true
+  description: "Enable persistent storage for PLC programs and retains"
+  type: boolean
+  label: Enable Persistent Storage
+  group: "Storage"
+  show_subquestion_if: true
+  subquestions:
+    - variable: runtime.persistence.size
+      type: string
+      label: Storage Size
+      description: "Size of persistent volume (e.g., 5Gi, 10Gi)"
+      default: "5Gi"
+    - variable: runtime.persistence.storageClass
+      type: storageclass
+      label: Storage Class
+      description: "Storage class for PVC (leave empty for default)"
+    - variable: runtime.persistence.existingClaim
+      type: string
+      label: Existing PVC
+      description: "Use existing PVC instead of creating new one (optional)"
+
+# ==================== Service Configuration ====================
+- variable: runtime.service.type
+  default: "LoadBalancer"
+  description: "Service type for runtime access"
+  type: enum
+  label: Service Type
+  group: "Networking"
+  required: true
+  options:
+    - "LoadBalancer"
+    - "NodePort"
+    - "ClusterIP"
+  show_subquestion_if: "NodePort"
+  subquestions:
+    - variable: runtime.service.ports.codesys.nodePort
+      type: int
+      label: CODESYS NodePort
+      description: "NodePort for CODESYS communication (30000-32767, leave empty for auto)"
+      min: 30000
+      max: 32767
+    - variable: runtime.service.ports.opcua.nodePort
+      type: int
+      label: OPC UA NodePort
+      description: "NodePort for OPC UA (30000-32767, leave empty for auto)"
+      min: 30000
+      max: 32767
+    - variable: runtime.service.ports.webvisu.nodePort
+      type: int
+      label: WebVisu NodePort
+      description: "NodePort for WebVisu web interface (30000-32767, leave empty for auto)"
+      min: 30000
+      max: 32767
+
+- variable: runtime.service.loadBalancerIP
+  default: ""
+  description: "Request specific LoadBalancer IP (optional)"
+  type: string
+  label: LoadBalancer IP
+  group: "Networking"
+  show_if: "runtime.service.type=LoadBalancer"
+
+# ==================== Ingress Configuration ====================
+- variable: runtime.ingress.enabled
+  default: false
+  description: "Enable Ingress for WebVisu web interface"
+  type: boolean
+  label: Enable Ingress
+  group: "Networking"
+  show_subquestion_if: true
+  subquestions:
+    - variable: runtime.ingress.className
+      type: string
+      label: Ingress Class
+      description: "Ingress controller class (e.g., nginx, traefik)"
+      default: "nginx"
+    - variable: runtime.ingress.hosts[0].host
+      type: hostname
+      label: Hostname
+      description: "Hostname for WebVisu access"
+      default: "plc-webvisu.local"
+    - variable: runtime.ingress.tls[0].secretName
+      type: string
+      label: TLS Secret Name
+      description: "Secret containing TLS certificate (optional)"
+    - variable: runtime.ingress.tls[0].hosts[0]
+      type: hostname
+      label: TLS Hostname
+      description: "Hostname for TLS certificate"
+      show_if: "runtime.ingress.tls[0].secretName!="
+
+# ==================== Runtime Configuration ====================
+- variable: runtime.config.runtimeMode
+  default: "Release"
+  description: "Runtime mode - Debug for development, Release for production"
+  type: enum
+  label: Runtime Mode
+  group: "Runtime Settings"
+  options:
+    - "Debug"
+    - "Release"
+
+- variable: runtime.config.logLevel
+  default: "Info"
+  description: "Logging verbosity level"
+  type: enum
+  label: Log Level
+  group: "Runtime Settings"
+  options:
+    - "Debug"
+    - "Info"
+    - "Warning"
+    - "Error"
+
+- variable: runtime.config.enableDiagnostics
+  default: true
+  description: "Enable runtime diagnostics and monitoring"
+  type: boolean
+  label: Enable Diagnostics
+  group: "Runtime Settings"
+
+- variable: runtime.config.webvisu.enabled
+  default: true
+  description: "Enable integrated WebVisu web server"
+  type: boolean
+  label: Enable WebVisu
+  group: "Runtime Settings"
+  show_subquestion_if: true
+  subquestions:
+    - variable: runtime.config.webvisu.maxClients
+      type: int
+      label: Max WebVisu Clients
+      description: "Maximum concurrent WebVisu connections"
+      default: 10
+      min: 1
+      max: 100
+
+# ==================== Advanced Configuration ====================
+- variable: runtime.hostNetwork
+  default: false
+  description: "Use host network (required for some fieldbus adapters like EtherCAT)"
+  type: boolean
+  label: Host Network Mode
+  group: "Advanced"
+
+- variable: runtime.config.realtime.enabled
+  default: false
+  description: "Enable real-time scheduling (requires RT kernel on node)"
+  type: boolean
+  label: Enable Real-Time
+  group: "Advanced"
+  show_subquestion_if: true
+  subquestions:
+    - variable: runtime.config.realtime.priority
+      type: int
+      label: RT Priority
+      description: "Real-time priority (1-99, higher = more priority)"
+      default: 80
+      min: 1
+      max: 99
+
+- variable: runtime.securityContext.privileged
+  default: true
+  description: "Run in privileged mode (required for hardware I/O access)"
+  type: boolean
+  label: Privileged Mode
+  group: "Advanced"
+
+# ==================== Node Placement ====================
+- variable: runtime.nodeSelector
+  default: {}
+  description: "Node selector labels for pod placement (YAML format)"
+  type: map[string]
+  label: Node Selector
+  group: "Placement"
+
+- variable: runtime.tolerations
+  default: []
+  description: "Tolerations for pod scheduling (YAML format)"
+  type: array[map[string]]
+  label: Tolerations
+  group: "Placement"

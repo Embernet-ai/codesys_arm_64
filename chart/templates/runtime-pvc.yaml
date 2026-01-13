@@ -1,0 +1,22 @@
+{{- if and .Values.runtime.enabled .Values.runtime.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "codesys-runtime-arm.runtime.pvcName" . }}
+  namespace: {{ include "codesys-runtime-arm.namespace" . }}
+  labels:
+    {{- include "codesys-runtime-arm.runtime.labels" . | nindent 4 }}
+  {{- with .Values.runtime.persistence.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  accessModes:
+    {{- toYaml .Values.runtime.persistence.accessModes | nindent 4 }}
+  {{- if .Values.runtime.persistence.storageClassName }}
+  storageClassName: {{ .Values.runtime.persistence.storageClassName }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.runtime.persistence.size }}
+{{- end }}

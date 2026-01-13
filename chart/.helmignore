@@ -1,0 +1,36 @@
+# CODESYS Runtime Helm Chart
+# .helmignore
+
+# Development files
+.git/
+.gitignore
+.DS_Store
+
+# CI/CD files
+.github/
+.gitlab-ci.yml
+
+# Documentation
+docs/
+*.md
+!README.md
+!app-readme.md
+
+# Example files
+examples/
+
+# Test files
+tests/
+test/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temp files
+*.tmp
+*.bak
+*.orig

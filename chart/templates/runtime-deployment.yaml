@@ -1,0 +1,148 @@
+{{- if .Values.runtime.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "codesys-runtime-arm.fullname" . }}-runtime
+  namespace: {{ include "codesys-runtime-arm.namespace" . }}
+  labels:
+    {{- include "codesys-runtime-arm.runtime.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.runtime.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "codesys-runtime-arm.runtime.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: Recreate  # PLC should not run multiple instances simultaneously
+  template:
+    metadata:
+      annotations:
+        {{- with .Values.runtime.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "codesys-runtime-arm.runtime.selectorLabels" . | nindent 8 }}
+        fireball.io/component: plc-runtime
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "codesys-runtime-arm.runtime.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.runtime.podSecurityContext | nindent 8 }}
+      {{- if .Values.runtime.hostNetwork }}
+      hostNetwork: true
+      {{- end }}
+      {{- if .Values.runtime.hostPID }}
+      hostPID: true
+      {{- end }}
+      containers:
+        - name: codesys-runtime
+          securityContext:
+            {{- toYaml .Values.runtime.securityContext | nindent 12 }}
+          image: "{{ .Values.runtime.image.repository }}:{{ .Values.runtime.image.tag }}-{{ .Values.runtime.architecture.type }}"
+          imagePullPolicy: {{ .Values.runtime.image.pullPolicy }}
+          ports:
+            - name: runtime
+              containerPort: {{ .Values.runtime.service.ports.codesys.targetPort }}
+              protocol: TCP
+            - name: opcua
+              containerPort: {{ .Values.runtime.service.ports.opcua.targetPort }}
+              protocol: TCP
+            - name: webvisu
+              containerPort: {{ .Values.runtime.service.ports.webvisu.targetPort }}
+              protocol: TCP
+          {{- if .Values.runtime.livenessProbe.enabled }}
+          livenessProbe:
+            tcpSocket:
+              port: {{ .Values.runtime.livenessProbe.tcpSocket.port }}
+            initialDelaySeconds: {{ .Values.runtime.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.runtime.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.runtime.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.runtime.livenessProbe.failureThreshold }}
+          {{- end }}
+          {{- if .Values.runtime.readinessProbe.enabled }}
+          readinessProbe:
+            tcpSocket:
+              port: {{ .Values.runtime.readinessProbe.tcpSocket.port }}
+            initialDelaySeconds: {{ .Values.runtime.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.runtime.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.runtime.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.runtime.readinessProbe.failureThreshold }}
+          {{- end }}
+          {{- if .Values.runtime.startupProbe.enabled }}
+          startupProbe:
+            tcpSocket:
+              port: {{ .Values.runtime.startupProbe.tcpSocket.port }}
+            initialDelaySeconds: {{ .Values.runtime.startupProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.runtime.startupProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.runtime.startupProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.runtime.startupProbe.failureThreshold }}
+          {{- end }}
+          resources:
+            {{- include "codesys-runtime-arm.runtime.resources" . | nindent 12 }}
+          env:
+            - name: CODESYS_LICENSE_TYPE
+              value: {{ .Values.runtime.config.license.type | quote }}
+            - name: CODESYS_LOG_LEVEL
+              value: {{ .Values.runtime.config.logLevel | quote }}
+            - name: CODESYS_RUNTIME_MODE
+              value: {{ .Values.runtime.config.runtimeMode | quote }}
+            - name: CODESYS_ARCH
+              value: {{ .Values.runtime.architecture.type | quote }}
+            {{- if .Values.runtime.config.webvisu.enabled }}
+            - name: CODESYS_WEBVISU_ENABLED
+              value: "true"
+            - name: CODESYS_WEBVISU_PORT
+              value: {{ .Values.runtime.config.webvisu.port | quote }}
+            - name: CODESYS_WEBVISU_MAX_CLIENTS
+              value: {{ .Values.runtime.config.webvisu.maxClients | quote }}
+            {{- end }}
+            {{- if .Values.runtime.config.realtime.enabled }}
+            - name: CODESYS_REALTIME_ENABLED
+              value: "true"
+            - name: CODESYS_REALTIME_PRIORITY
+              value: {{ .Values.runtime.config.realtime.priority | quote }}
+            {{- end }}
+            {{- if eq .Values.runtime.config.license.type "soft-container" }}
+            {{- if .Values.runtime.config.license.content }}
+            - name: CODESYS_LICENSE_DATA
+              value: {{ .Values.runtime.config.license.content | quote }}
+            {{- end }}
+            {{- end }}
+            {{- with .Values.runtime.config.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          volumeMounts:
+            {{- if .Values.runtime.persistence.enabled }}
+            - name: runtime-storage
+              mountPath: {{ .Values.runtime.persistence.mountPath }}
+            {{- end }}
+            {{- with .Values.runtime.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+      volumes:
+        {{- if .Values.runtime.persistence.enabled }}
+        - name: runtime-storage
+          persistentVolumeClaim:
+            claimName: {{ include "codesys-runtime-arm.runtime.pvcName" . }}
+        {{- else }}
+        - name: runtime-storage
+          emptyDir: {}
+        {{- end }}
+        {{- with .Values.runtime.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.runtime.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.runtime.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.runtime.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

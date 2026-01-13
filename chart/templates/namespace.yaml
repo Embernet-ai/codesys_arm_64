@@ -1,0 +1,13 @@
+{{- if .Values.namespace.create }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.namespace.name }}
+  labels:
+    {{- include "codesys-runtime-arm.labels" . | nindent 4 }}
+    fireball.io/managed-by: podstore
+    fireball.io/owner: patrick-ryan
+    fireball.io/type: industrial-automation
+  annotations:
+    field.cattle.io/description: "CODESYS Industrial Automation PLC Runtime - Fireball Industries Podstore"
+{{- end }}

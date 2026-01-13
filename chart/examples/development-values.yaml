@@ -1,0 +1,230 @@
+# Development CODESYS Deployment Example
+# This configuration is for development, testing, and experimentation
+# Uses demo mode and minimal resources
+
+# Namespace configuration
+namespace:
+  name: codesys-dev
+  labels:
+    environment: development
+    team: automation
+
+#############################################
+# PLC Runtime Configuration
+#############################################
+runtime:
+  enabled: true
+  
+  # Architecture selection
+  architecture:
+    type: arm64  # Options: arm32 (ARMv7) or arm64 (ARMv8)
+  
+  image:
+    repository: codesys/codesyscontrol-linux-arm
+    tag: "4.18.0.0"
+    pullPolicy: Always  # Pull latest for dev
+  
+  # Small resources for development
+  resources:
+    preset: small  # 250m-500m CPU, 256Mi-512Mi RAM
+  
+  # Minimal persistent storage
+  persistence:
+    enabled: true
+    storageClass: standard  # Default storage class is fine
+    size: 5Gi  # Smaller size for dev
+    accessMode: ReadWriteOnce
+  
+  # Service configuration - NodePort for local dev access
+  service:
+    type: NodePort
+    annotations: {}
+    ports:
+      codesys:
+        port: 1217
+        targetPort: 1217
+        nodePort: 31217  # Fixed port for convenience
+      opcua:
+        port: 4840
+        targetPort: 4840
+        nodePort: 31840  # Fixed port for OPC UA
+  
+  # Security context - still needs privileged for I/O
+  securityContext:
+    privileged: true
+    capabilities:
+      add:
+        - SYS_ADMIN
+        - SYS_NICE
+        - SYS_RAWIO
+        - NET_ADMIN
+        - IPC_LOCK
+    allowPrivilegeEscalation: true
+    runAsNonRoot: false
+  
+  # No host network for dev (unless testing fieldbus)
+  hostNetwork: false
+  dnsPolicy: ClusterFirst
+  
+  # Runtime configuration - DEMO MODE
+  config:
+    license:
+      type: demo  # 2-hour demo mode, auto-restart configured below
+    
+    runtimeMode: Debug  # Debug mode for development
+    enableDiagnostics: true
+    logLevel: Debug  # Verbose logging for troubleshooting
+    
+    realtime:
+      enabled: false  # Not needed for dev/testing
+  
+  # Relaxed probes for dev (faster startup)
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 30
+    periodSeconds: 60
+    timeoutSeconds: 10
+    failureThreshold: 5
+  
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 15
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 5
+  
+  # No special node requirements for dev
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  
+  # Auto-restart for demo mode (expires after 2 hours)
+  # Note: This is handled by setting restart policy, but you'll
+  # still need to manually restart when demo expires
+  restartPolicy: Always
+
+#############################################
+# WebVisu Configuration
+#############################################
+webvisu:
+  enabled: true
+  
+  image:
+    repository: codesys/codesys-webvisu
+    tag: "4.18.0.0"
+    pullPolicy: Always
+  
+  # Small resources for dev
+  resources:
+    preset: small  # 100m-500m CPU, 128Mi-512Mi RAM
+  
+  # Service configuration - NodePort for easy access
+  service:
+    type: NodePort
+    annotations: {}
+    ports:
+      http:
+        port: 8080
+        targetPort: 8080
+        nodePort: 31080  # Fixed port - http://localhost:31080
+      https:
+        port: 8443
+        targetPort: 8443
+        nodePort: null  # HTTPS not needed for dev
+  
+  # No ingress for dev - use NodePort
+  ingress:
+    enabled: false
+  
+  # Standard security context
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    fsGroup: 65534
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+  
+  # No authentication for dev (open access)
+  auth:
+    enabled: false
+  
+  # Relaxed probes
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 20
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 5
+  
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 5
+  
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+#############################################
+# Monitoring & Observability
+#############################################
+monitoring:
+  enabled: false  # Disable for dev to save resources
+  
+  serviceMonitor:
+    enabled: false
+  
+  grafanaDashboard:
+    enabled: false
+
+#############################################
+# Pod Disruption Budget
+#############################################
+podDisruptionBudget:
+  enabled: false  # Not needed for dev
+
+#############################################
+# Network Policies
+#############################################
+networkPolicy:
+  enabled: false  # Disable for easier dev access
+
+#############################################
+# Backup Configuration
+#############################################
+backup:
+  enabled: false  # No backups for dev environment
+
+#############################################
+# Development Helpers
+#############################################
+
+# Quick Access URLs (after deployment):
+# - CODESYS Runtime: <NODE_IP>:31217
+# - OPC UA Server: <NODE_IP>:31840
+# - WebVisu HMI: http://<NODE_IP>:31080
+#
+# To get NODE_IP:
+#   kubectl get nodes -o wide
+#
+# To restart demo mode (after 2-hour expiry):
+#   kubectl rollout restart deployment -n codesys-dev
+#
+# To view logs:
+#   kubectl logs -n codesys-dev -l app.kubernetes.io/component=plc-runtime -f
+#   kubectl logs -n codesys-dev -l app.kubernetes.io/component=webvisu -f
+#
+# To connect from CODESYS IDE:
+#   1. Open CODESYS Development System
+#   2. Tools → Update Raspberry Pi (or Scan Network)
+#   3. Enter: <NODE_IP>:31217
+#   4. Login with default credentials
+#   5. Download your application
+#
+# Pro tip: Set up a quick alias for demo restart:
+#   alias restart-plc='kubectl rollout restart deployment -n codesys-dev -l app.kubernetes.io/component=plc-runtime'

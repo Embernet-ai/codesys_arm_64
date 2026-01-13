@@ -1,0 +1,61 @@
+apiVersion: v2
+name: codesys-runtime-arm
+description: Industrial automation PLC runtime - CODESYS Control for Linux ARM64 with WebVisu and OPC UA server for IEC 61131-3 programming
+type: application
+version: 1.0.0
+appVersion: "4.18.0.0"
+keywords:
+  - codesys
+  - plc
+  - industrial-automation
+  - scada
+  - iec-61131-3
+  - ethercat
+  - profinet
+  - modbus
+  - opcua
+home: https://github.com/fireball-industries/fireball-podstore-charts
+sources:
+  - https://www.codesys.com/
+  - https://github.com/fireball-industries/fireball-podstore-charts
+  - https://github.com/fireball-industries/CodesysControlLinuxARM64
+  - https://github.com/fireball-industries/CodesysControlLinuxARM64/releases/tag/64-Bit
+  - https://github.com/fireball-industries/CodesysControlLinuxARM64/releases/tag/32-Bit
+maintainers:
+  - name: Patrick Ryan
+    email: patrick@fireball-industries.com
+    url: https://fireball-industries.com
+icon: https://www.codesys.com/fileadmin/data/Images/SocialMedia/CODESYS_LOGO_black_200x200.png
+annotations:
+  # Rancher Catalog Integration
+  catalog.cattle.io/display-name: "CODESYS Runtime ARM"
+  catalog.cattle.io/release-name: "codesys-runtime-arm"
+  catalog.cattle.io/certified: "partner"
+  catalog.cattle.io/categories: "Forge Industrial,PLC Runtime,Factory Automation"
+  catalog.cattle.io/namespace: "codesys-plc"
+  catalog.cattle.io/kube-version: ">=1.25.0"
+  catalog.cattle.io/rancher-version: ">=2.6.0"
+  catalog.cattle.io/namespace: "industrial-automation"
+  catalog.cattle.io/os: "linux"
+  catalog.cattle.io/provides-gvr: "apps/v1/Deployment"
+  
+  # Additional metadata for Rancher UI
+  catalog.cattle.io/auto-install: ""
+  catalog.cattle.io/requests-cpu: "500m"
+  catalog.cattle.io/requests-memory: "512Mi"
+  catalog.cattle.io/upstream-version: "4.18.0.0"
+  
+  # Categories and tags for Rancher catalog browsing
+  catalog.cattle.io/categories: "Industrial Automation,PLC,SCADA"
+  catalog.cattle.io/type: "cluster-tool"
+  
+  # Branding
+  catalog.cattle.io/vendor: "Fireball Industries"
+  catalog.cattle.io/maintainer: "Patrick Ryan <patrick@fireball-industries.com>"
+  
+  # Documentation URLs
+  catalog.cattle.io/documentation-url: "https://content.helpme-codesys.com/"
+  catalog.cattle.io/support-url: "https://github.com/fireball-industries/fireball-podstore-charts/issues"
+  
+  # Warnings
+  catalog.cattle.io/warnings: "Requires privileged mode for hardware I/O access. Runs in 2-hour demo mode without license."
