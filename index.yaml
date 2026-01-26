@@ -4,13 +4,41 @@ entries:
   - annotations:
       catalog.cattle.io/arch: arm64,amd64
       catalog.cattle.io/certified: partner
+      catalog.cattle.io/display-name: Codesys Control ARM32
+      catalog.cattle.io/os: linux
+      catalog.cattle.io/release-name: codesys-pod
+      catalog.cattle.io/ui-component: "true"
+    apiVersion: v2
+    appVersion: 4.18.0.0
+    created: "2026-01-26T17:15:53.0352255-05:00"
+    description: Codesys Control ARM32 Runtime (Installer Pattern)
+    digest: ab581a7843b70eff26995c59cd66197c5f68da617df60b8001590e310163de65
+    home: https://github.com/Embernet-ai/codesys_arm_64
+    icon: https://www.helpme-codesys.com/icons/CODESYS-logo.svg
+    keywords:
+    - codesys
+    - plc
+    - industrial
+    - arm
+    - iiot
+    maintainers:
+    - email: support@embernet.ai
+      name: Embernet-ai
+    name: codesys-pod
+    type: application
+    urls:
+    - https://embernet-ai.github.io/codesys_arm_64/codesys-pod-1.0.2.tgz
+    version: 1.0.2
+  - annotations:
+      catalog.cattle.io/arch: arm64,amd64
+      catalog.cattle.io/certified: partner
       catalog.cattle.io/display-name: Codesys Control ARM32 BIT
       catalog.cattle.io/os: linux
       catalog.cattle.io/release-name: codesys-pod
       catalog.cattle.io/ui-component: "true"
     apiVersion: v2
     appVersion: 4.18.0.0
-    created: "2026-01-26T17:12:19.6366619-05:00"
+    created: "2026-01-26T17:15:53.0347111-05:00"
     description: Codesys Control ARM32 BIT Runtime (Installer Pattern)
     digest: f43b6fac2797c2a5afd1d4242e8d7a3259ab19b13f6ceb0b27a172859088b1ea
     home: https://github.com/Embernet-ai/codesys_arm_64
@@ -29,32 +57,4 @@ entries:
     urls:
     - https://embernet-ai.github.io/codesys_arm_64/codesys-pod-1.0.1.tgz
     version: 1.0.1
-  - annotations:
-      catalog.cattle.io/arch: arm64,amd64
-      catalog.cattle.io/certified: partner
-      catalog.cattle.io/display-name: CODESYS Control SL
-      catalog.cattle.io/os: linux
-      catalog.cattle.io/release-name: codesys-pod
-      catalog.cattle.io/ui-component: "true"
-    apiVersion: v2
-    appVersion: 4.18.0.0
-    created: "2026-01-26T17:12:19.6361424-05:00"
-    description: CODESYS Control SL Runtime (Installer Pattern)
-    digest: 28a2f8b09a37ef2df987e4623467f876a9fc195d805e34d3fc92e3c65a628c71
-    home: https://github.com/Embernet-ai/codesys_arm_64
-    icon: https://www.codesys.com/fileadmin/templates/images/logo-codesys.png
-    keywords:
-    - codesys
-    - plc
-    - industrial
-    - arm
-    - iiot
-    maintainers:
-    - email: support@embernet.ai
-      name: Embernet-ai
-    name: codesys-pod
-    type: application
-    urls:
-    - https://embernet-ai.github.io/codesys_arm_64/codesys-pod-1.0.0.tgz
-    version: 1.0.0
-generated: "2026-01-26T17:12:19.6356367-05:00"
+generated: "2026-01-26T17:15:53.0336099-05:00"

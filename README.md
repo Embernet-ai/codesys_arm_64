@@ -1,6 +1,20 @@
-# Codesys Control ARM32 BIT - Helm Chart
+# Codesys Control ARM32 - Helm Chart
 
-A generic request from Fireball Industries to Embernet-ai. This Helm chart deploys the **Codesys Control ARM32 BIT** runtime on Kubernetes (k3s/Rancher) using the official installer package.
+## Product Overview
+**CODESYS Control** is the corresponding runtime system for the CODESYS Development System. It converts an industrial PC or embedded device (like Raspberry Pi or generic ARM Linux devices) into a high-performance IEC 61131-3 compatible programmable logic controller (PLC).
+
+### Key Features
+- **IEC 61131-3 Logic**: Supports all standard languages (ST, LD, FBD, SFC, AS).
+- **Security**: Encrypted communication, user management, and secure boot integration.
+- **Connectivity**: 
+  - **OPC UA Server**: Built-in for SCADA/MES integration (Port 4840).
+  - **Web Visualization**: HTML5-based HMI hosted directly on the controller (Port 8080).
+  - **Fieldbus Support**: EtherCAT, PROFINET, EtherNet/IP, Modbus TCP/RTU.
+- **Motion Control**: Optional SoftMotion support for single and multi-axis control.
+- **Multicore Support**: Distribute tasks across CPU cores for real-time performance.
+
+## Chart Description
+This Helm chart deploys the **Codesys Control ARM32** runtime on Kubernetes clusters. It is optimized for Edge scenarios (K3s) and uses the **Installer Pattern** to fetch the official 32-bit runtime package and install it on a standard Debian container.
 
 ## Architecture
 
