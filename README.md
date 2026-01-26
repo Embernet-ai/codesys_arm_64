@@ -1,6 +1,6 @@
-# CODESYS Control SL - Helm Chart
+# Codesys Control ARM32 BIT - Helm Chart
 
-A generic request from Fireball Industries to Embernet-ai. This Helm chart deploys the **CODESYS Control SL** runtime on Kubernetes (k3s/Rancher) using the official installer package.
+A generic request from Fireball Industries to Embernet-ai. This Helm chart deploys the **Codesys Control ARM32 BIT** runtime on Kubernetes (k3s/Rancher) using the official installer package.
 
 ## Architecture
 
