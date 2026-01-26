@@ -10,11 +10,11 @@ entries:
       catalog.cattle.io/ui-component: "true"
     apiVersion: v2
     appVersion: 4.18.0.0
-    created: "2026-01-26T19:49:28.1686342-03:00"
+    created: "2026-01-26T18:01:48.3837805-05:00"
     description: Codesys Control ARM32 Runtime (Installer Pattern)
-    digest: a05a00ddebc7ae855c3e05c521b81178e6ae2b5c4b9d7866bd3b883e4dd99847
+    digest: dca1decdb4e8bed0027c1eac012c10a0a62a87e54a8d51a542802c8d16e16083
     home: https://github.com/Embernet-ai/codesys_arm_64
-    icon: https://embernet-ai.github.io/codesys_arm_64/codesys-icon.png
+    icon: https://www.helpme-codesys.com/icons/CODESYS-logo.svg
     keywords:
     - codesys
     - plc
@@ -38,7 +38,7 @@ entries:
       catalog.cattle.io/ui-component: "true"
     apiVersion: v2
     appVersion: 4.18.0.0
-    created: "2026-01-26T19:49:28.1681068-03:00"
+    created: "2026-01-26T18:01:48.3832646-05:00"
     description: Codesys Control ARM32 Runtime (Installer Pattern)
     digest: ab581a7843b70eff26995c59cd66197c5f68da617df60b8001590e310163de65
     home: https://github.com/Embernet-ai/codesys_arm_64
@@ -57,4 +57,4 @@ entries:
     urls:
     - https://embernet-ai.github.io/codesys_arm_64/codesys-pod-1.0.2.tgz
     version: 1.0.2
-generated: "2026-01-26T19:49:28.1670909-03:00"
+generated: "2026-01-26T18:01:48.382746-05:00"
