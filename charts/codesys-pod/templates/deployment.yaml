@@ -1,0 +1,130 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "codesys-pod.fullname" . }}
+  labels:
+    {{- include "codesys-pod.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "codesys-pod.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "codesys-pod.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "codesys-pod.serviceAccountName" . }}
+      
+      initContainers:
+        - name: download-installer
+          image: curlimages/curl:latest
+          command:
+            - sh
+            - -c
+            - |
+              echo "Downloading installer from {{ .Values.installerUrl }}..."
+              mkdir -p /installer
+              curl -L "{{ .Values.installerUrl }}" -o /installer/package.zip
+              echo "Unzipping..."
+              unzip -o /installer/package.zip -d /installer
+              echo "Download and extraction complete."
+          volumeMounts:
+            - name: installer-volume
+              mountPath: /installer
+
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - /bin/bash
+            - -c
+            - |
+              echo "Checking for CODESYS installation..."
+              
+              # Function to install dependencies if missing
+              install_deps() {
+                echo "Installing dependencies..."
+                apt-get update
+                apt-get install -y libcap2-bin unzip iptables net-tools
+              }
+
+              # Look for the .deb file extracted by initContainer
+              DEB_FILE=$(find /installer -name "*codesyscontrol*.deb" | head -n 1)
+
+              if [ -z "$DEB_FILE" ]; then
+                echo "ERROR: No .deb file found in /installer"
+                ls -R /installer
+                exit 1
+              fi
+
+              # Check if already installed
+              if ! dpkg-query -W -f='${Status}' codesyscontrol 2>/dev/null | grep -q "install ok installed"; then
+                echo "Installing CODESYS from $DEB_FILE..."
+                install_deps
+                dpkg -i "$DEB_FILE" || apt-get install -f -y
+                echo "Installation complete."
+              else
+                echo "CODESYS already installed."
+              fi
+
+              # Ensure persistence directory exists and permissions are correct
+              mkdir -p /var/opt/codesys
+              
+              echo "Starting CODESYS Control..."
+              # The binary location usually is /opt/codesys/bin/codesyscontrol.bin
+              # We use the service script or binary directly
+              
+              if [ -f "/opt/codesys/bin/codesyscontrol.bin" ]; then
+                 /opt/codesys/bin/codesyscontrol.bin -d /etc/CODESYSControl.cfg
+              else
+                 echo "Binary not found, searching..."
+                 find /opt -name "codesyscontrol.bin"
+                 exit 1
+              fi
+          ports:
+            - name: gateway
+              containerPort: {{ .Values.service.ports.gateway }}
+              protocol: TCP
+            - name: opcua
+              containerPort: {{ .Values.service.ports.opcua }}
+              protocol: TCP
+            - name: webvisu
+              containerPort: {{ .Values.service.ports.webvisu }}
+              protocol: TCP
+          volumeMounts:
+            - name: data
+              mountPath: {{ .Values.persistence.path }}
+            - name: installer-volume
+              mountPath: /installer
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "codesys-pod.fullname" . }}
+        - name: installer-volume
+          emptyDir: {}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

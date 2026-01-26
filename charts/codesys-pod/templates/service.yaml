@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "codesys-pod.fullname" . }}
+  labels:
+    {{- include "codesys-pod.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.ports.gateway }}
+      targetPort: gateway
+      protocol: TCP
+      name: gateway
+    - port: {{ .Values.service.ports.opcua }}
+      targetPort: opcua
+      protocol: TCP
+      name: opcua
+    - port: {{ .Values.service.ports.webvisu }}
+      targetPort: webvisu
+      protocol: TCP
+      name: webvisu
+  selector:
+    {{- include "codesys-pod.selectorLabels" . | nindent 4 }}
