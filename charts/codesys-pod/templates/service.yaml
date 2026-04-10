@@ -4,8 +4,9 @@ metadata:
   name: {{ include "codesys-pod.fullname" . }}
   labels:
     {{- include "codesys-pod.labels" . | nindent 4 }}
+    {{- include "codesys-pod.storeLabels" . | nindent 4 }}
 spec:
-  type: {{ .Values.service.type }}
+  type: {{ .Values.service.type | default "ClusterIP" }}
   ports:
     - port: {{ .Values.service.ports.gateway }}
       targetPort: gateway
@@ -19,5 +20,11 @@ spec:
       targetPort: webvisu
       protocol: TCP
       name: webvisu
+    {{- if .Values.sidecarProxy.enabled }}
+    - port: {{ .Values.sidecarProxy.listenPort }}
+      targetPort: proxy-http
+      protocol: TCP
+      name: proxy-http
+    {{- end }}
   selector:
     {{- include "codesys-pod.selectorLabels" . | nindent 4 }}

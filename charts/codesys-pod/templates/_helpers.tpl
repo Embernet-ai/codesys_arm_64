@@ -51,12 +51,16 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
-Create the name of the service account to use
+EmberNET Store Labels — The Big Four
+These labels enable Industrial Dashboard discovery for pod and service resources.
 */}}
-{{- define "codesys-pod.serviceAccountName" -}}
-{{- if .Values.serviceAccount.create }}
-{{- default (include "codesys-pod.fullname" .) .Values.serviceAccount.name }}
+{{- define "codesys-pod.storeLabels" -}}
+embernet.ai/store-app: "true"
+embernet.ai/gui-type: {{ .Values.gui.type | default "web" | quote }}
+embernet.ai/app-name: {{ include "codesys-pod.name" . | quote }}
+{{- if and .Values.sidecarProxy .Values.sidecarProxy.enabled }}
+embernet.ai/gui-port: {{ .Values.sidecarProxy.listenPort | quote }}
 {{- else }}
-{{- default "default" .Values.serviceAccount.name }}
+embernet.ai/gui-port: {{ .Values.gui.port | default .Values.service.port | quote }}
 {{- end }}
 {{- end }}
