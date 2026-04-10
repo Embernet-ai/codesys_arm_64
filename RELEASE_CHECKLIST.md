@@ -1,19 +1,46 @@
-# 🔥 CODESYS Control ARM32 — Release Checklist
+# 🔥 Release Checklist — codesys-pod (ARM32)
 
-> **Repository:** `Embernet-ai/codesys_arm_64`
-> **Helm Chart:** `codesys-pod`
-> **GitHub Pages:** `https://embernet-ai.github.io/codesys_arm_64/`
-
-This checklist must be completed before every release of the CODESYS Control ARM32 Helm chart. Every box must be checked before merging to `main`.
+**EmberNET Helm Chart Release Protocol**
+*Fireball Industries — Production Deployment Standard*
 
 ---
 
-## Pre-Release Verification
+> **Purpose:** This checklist must be completed before every chart version release to `main`. It ensures the CODESYS Control ARM32 chart remains aligned with the canonical EmberNET template, passes all validation gates, and integrates correctly with the Industrial Dashboard.
 
-### 1. Version & Image Verification
+---
 
-- [ ] `charts/codesys-pod/Chart.yaml` → `version` has been bumped (current: `1.1.0`)
+## How This Repo Integrates Into the Industrial Dashboard
+
+The EmberNET Industrial Dashboard discovers apps by scanning pod and service labels for `embernet.ai/store-app: "true"`. When found, it reads the companion labels (`gui-type`, `app-name`, `gui-port`) to determine how to render the app in the embedded App Store.
+
+**CODESYS ARM32-specific integration flow:**
+
+1. Dashboard scans for pods with `embernet.ai/store-app: "true"` → finds `codesys-pod`
+2. Dashboard reads `embernet.ai/gui-type: "web"` → renders as iframe-able web app
+3. Dashboard reads `embernet.ai/gui-port: "8080"` (or `"8081"` with sidecar) → proxies to correct port
+4. Dashboard embeds CODESYS WebVisu via iframe through Rancher's K8s API proxy
+5. **Sidecar proxy** (when enabled) rewrites absolute asset paths to relative, preventing 404s through the proxy chain
+
+**CODESYS-specific considerations:**
+- CODESYS uses an **installer pattern** — no public Docker image. The initContainer downloads a `.package` file from GitHub Releases and installs via `dpkg` at runtime.
+- CODESYS WebVisu is a **server-rendered HTML5 HMI**, not a complex SPA. Sidecar proxy is **disabled by default** — enable only if WebVisu assets break through the Dashboard proxy.
+- Three critical ports must all be reachable: **Gateway (1217)** for IDE connections, **OPC UA (4840)** for industrial protocol, and **WebVisu (8080)** for the web HMI.
+- CODESYS requires **privileged security context** for hardware interfaces, fieldbus protocols (EtherCAT, PROFINET), and raw network sockets.
+
+**Critical path:** Any change to labels, ports, or sidecar config directly affects Dashboard integration. Test through the Dashboard, not just direct access.
+
+---
+
+## Pre-Release Validation
+
+### 1. Version Verification
+
+- [ ] `charts/codesys-pod/Chart.yaml` → `version` has been bumped appropriately
+  - Patch (`x.x.+1`): bug fixes, config tweaks
+  - Minor (`x.+1.0`): new features, non-breaking config additions
+  - Major (`+1.0.0`): breaking changes, image version jumps
 - [ ] `charts/codesys-pod/Chart.yaml` → `appVersion` matches the latest stable CODESYS release
+  - Format: `"<VERSION>"` (e.g., `"4.20.0.0"`)
 - [ ] `charts/codesys-pod/values.yaml` → `installerUrl` matches the version in `appVersion`
 - [ ] `catalog.cattle.io/upstream-version` annotation in `Chart.yaml` matches `appVersion`
 - [ ] CODESYS installer package URL verified to exist:
@@ -35,16 +62,18 @@ All four labels MUST appear on **pod template labels** AND **Service labels**.
 | `embernet.ai/store-app` | `"true"` | ☐ |
 | `embernet.ai/gui-type` | `"web"` | ☐ |
 | `embernet.ai/app-name` | `"codesys-pod"` | ☐ |
-| `embernet.ai/gui-port` | `"8080"` | ☐ |
+| `embernet.ai/gui-port` | `"8080"` (or `"8081"` with sidecar) | ☐ |
 
 **Verification command:**
 ```bash
 helm template test-release charts/codesys-pod | grep -c "embernet.ai/"
 # Expected: 8 (4 labels × 2 resources: service + pod template)
+# Note: installerUrl also contains "embernet.ai" — count actual label lines
 ```
 
 - [ ] Labels present on pod template (deployment.yaml via `codesys-pod.storeLabels` helper)
 - [ ] Labels present on Service (service.yaml via `codesys-pod.storeLabels` helper)
+- [ ] `gui-port` switches to sidecar port when `sidecarProxy.enabled: true`
 - [ ] Labels generated via `codesys-pod.storeLabels` helper (NOT hardcoded)
 
 ### 3. Network Configuration
@@ -52,7 +81,7 @@ helm template test-release charts/codesys-pod | grep -c "embernet.ai/"
 - [ ] `network.hostNetwork: true` is the **default** in `values.yaml`
 - [ ] Deployment renders `hostNetwork: true` + `dnsPolicy: ClusterFirstWithHostNet` by default
 - [ ] Deployment renders `dnsPolicy: ClusterFirst` when `hostNetwork: false`
-- [ ] `hostPort` is set on all ports (1217, 4840, 8080) when `hostNetwork: true`
+- [ ] `hostPort` is set on all three ports (1217, 4840, 8080) when `hostNetwork: true`
 - [ ] `hostPort` is absent when `hostNetwork: false`
 
 **Verification:**
@@ -74,7 +103,7 @@ helm template test-release charts/codesys-pod --set network.hostNetwork=false | 
 
 ### 5. Sidecar Proxy Decision
 
-CODESYS WebVisu is a **server-rendered HTML5 HMI** (not a complex SPA).
+CODESYS WebVisu is a **server-rendered HTML5 HMI** — NOT a complex SPA.
 
 | Criterion | Assessment |
 |-----------|------------|
@@ -88,6 +117,8 @@ CODESYS WebVisu is a **server-rendered HTML5 HMI** (not a complex SPA).
 - [ ] Confirmed: `configmap-sidecar-proxy.yaml` template only renders when enabled
 - [ ] Confirmed: When sidecar enabled, `gui-port` switches to sidecar `listenPort` (8081)
 - [ ] Confirmed: `gui.type` defaults to `"web"`
+- [ ] Sidecar container is the **last** container in the pod spec
+- [ ] When enabled: sidecar health check responds at `/sidecar-health`
 
 ### 6. Chart Linting & Templating
 
@@ -135,16 +166,18 @@ After the workflow runs:
 
 - [ ] Dashboard can discover the deployed pod via `embernet.ai/store-app: "true"` label
 - [ ] Dashboard shows "CODESYS Control ARM32" from `gui.displayName` value
-- [ ] Dashboard renders the WebVisu in an iframe when the tile is clicked (`gui-type: "web"`)
-- [ ] WebVisu is accessible at `http://<NODE-IP>:8080/webvisu.htm` (hostNetwork mode)
+- [ ] Dashboard proxy routes to the correct port (`gui-port` label value)
+- [ ] WebVisu loads correctly through the Dashboard iframe/proxy
+- [ ] WebVisu at `http://<NODE-IP>:8080/webvisu.htm` is accessible (hostNetwork mode)
 
-### 10. CODESYS-Specific Verification
+### 10. Sidecar Proxy Integration (When Enabled)
 
-- [ ] CODESYS Gateway port 1217 is reachable from CODESYS IDE
-- [ ] OPC UA server on port 4840 responds to OPC UA client queries
-- [ ] WebVisu on port 8080 renders the HMI correctly
-- [ ] PLC runtime starts and accepts project downloads
-- [ ] Persistence volume retains application data across pod restarts
+- [ ] Dashboard reads `gui-port: "8081"` → routes to sidecar
+- [ ] Sidecar rewrites absolute asset paths to relative
+- [ ] WebVisu loads correctly through Dashboard proxy (not blank screen)
+- [ ] WebVisu HMI controls are interactive through the proxy
+- [ ] No 404 errors in browser DevTools for WebVisu assets
+- [ ] WebSocket connections for real-time visualization updates work
 
 ---
 
@@ -159,7 +192,7 @@ helm install codesys charts/codesys-pod -n industrial --create-namespace
 # Verify pod is running
 kubectl get pods -n industrial -l app.kubernetes.io/name=codesys-pod
 
-# Check container is ready (1/1)
+# Check all containers are ready (1/1 or 2/2 with sidecar)
 kubectl get pods -n industrial -l embernet.ai/store-app=true
 
 # Verify services
@@ -183,7 +216,7 @@ nc -zv <NODE-IP> 4840
 - [ ] PVCs are bound (persistence enabled by default)
 - [ ] Event log shows no warnings or errors
 
-### 12. Functional Verification
+### 12. CODESYS-Specific Functional Verification
 
 - [ ] CODESYS IDE can connect via Gateway port 1217
 - [ ] PLC project can be downloaded to runtime
@@ -229,7 +262,7 @@ If the release introduces regressions:
 
 | Field | Value |
 |-------|-------|
-| Chart Version | `1.1.0` |
+| Chart Version | `1.2.0` |
 | App Version | `4.20.0.0` |
 | Base Image | `debian:bullseye` |
 | Released By | _______________ |

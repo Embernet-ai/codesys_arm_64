@@ -35,7 +35,7 @@
     embernet.ai/store-app: "true"
     embernet.ai/gui-type:  "{{ .Values.gui.type }}"
     embernet.ai/app-name:  "{{ include "codesys-pod.name" . }}"
-    embernet.ai/gui-port:  "{{ .Values.gui.port }}"
+    embernet.ai/gui-port:  "{{- if and .Values.sidecarProxy .Values.sidecarProxy.enabled }}{{ .Values.sidecarProxy.listenPort }}{{- else }}{{ .Values.gui.port | default .Values.service.port }}{{- end }}"
 
 ===============================================================================
   🔥 Fireball Industries — Ignite Your Factory Efficiency
