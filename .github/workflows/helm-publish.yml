@@ -45,11 +45,15 @@ jobs:
         run: |
           mkdir -p .deploy
           helm package charts/codesys-pod -d .deploy
-          # Fetch existing index from live site and merge (preserves old versions)
+          # Fetch existing index from gh-pages and merge (preserves old versions)
           curl -sSL https://embernet-ai.github.io/codesys_arm_64/index.yaml -o .deploy/existing-index.yaml || true
-          if [ -f .deploy/existing-index.yaml ]; then
+          # Validate the downloaded file is actual YAML (not a 404 HTML page)
+          if [ -f .deploy/existing-index.yaml ] && head -1 .deploy/existing-index.yaml | grep -q "^apiVersion:"; then
+            echo "Valid existing index found — merging"
             helm repo index .deploy --url https://embernet-ai.github.io/codesys_arm_64/ --merge .deploy/existing-index.yaml
           else
+            echo "No valid existing index — generating fresh"
+            rm -f .deploy/existing-index.yaml
             helm repo index .deploy --url https://embernet-ai.github.io/codesys_arm_64/
           fi
           rm -f .deploy/existing-index.yaml
