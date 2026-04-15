@@ -56,8 +56,8 @@ helm install my-codesys embernet/codesys-pod
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `installerUrl` | URL to the CODESYS `.package` file | `.../v4.18.0.0/CODESYS.Control.for.Linux.ARM.32.bit...package` |
-| `service.type` | Service type (LoadBalancer/NodePort) | `LoadBalancer` |
+| `installerUrl` | URL to the CODESYS `.package` file | `.../v4.20.0.0/CODESYS.Control.for.Linux.ARM.32.bit...package` |
+| `service.type` | Service type | `ClusterIP` |
 | `persistence.enabled` | Enable persistence for `/var/opt/codesys` | `true` |
 | `persistence.size` | Size of the PVC | `5Gi` |
 

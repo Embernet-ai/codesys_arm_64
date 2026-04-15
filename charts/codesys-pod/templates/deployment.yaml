@@ -6,6 +6,8 @@ metadata:
     {{- include "codesys-pod.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount | default 1 }}
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       {{- include "codesys-pod.selectorLabels" . | nindent 6 }}
@@ -153,6 +155,10 @@ spec:
               readOnly: true
             - name: sidecar-proxy-tmp
               mountPath: /tmp
+            - name: sidecar-proxy-cache
+              mountPath: /var/cache/nginx
+            - name: sidecar-proxy-run
+              mountPath: /var/run
           resources:
             {{- toYaml .Values.sidecarProxy.resources | nindent 12 }}
           securityContext:
@@ -200,6 +206,12 @@ spec:
         - name: sidecar-proxy-tmp
           emptyDir:
             sizeLimit: 64Mi
+        - name: sidecar-proxy-cache
+          emptyDir:
+            sizeLimit: 64Mi
+        - name: sidecar-proxy-run
+          emptyDir:
+            sizeLimit: 1Mi
         {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:

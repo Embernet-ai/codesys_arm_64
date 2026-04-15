@@ -2,7 +2,7 @@ apiVersion: v2
 name: codesys-pod
 description: CODESYS Control ARM32 Runtime — IEC 61131-3 PLC for ARM Linux (Installer Pattern)
 type: application
-version: 1.2.0
+version: 1.3.0
 appVersion: "4.20.0.0"
 keywords:
   - codesys

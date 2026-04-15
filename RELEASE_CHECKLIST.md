@@ -262,9 +262,10 @@ If the release introduces regressions:
 
 | Field | Value |
 |-------|-------|
-| Chart Version | `1.2.0` |
+| Chart Version | `1.3.0` |
 | App Version | `4.20.0.0` |
 | Base Image | `debian:bullseye` |
+| Sidecar Image | `nginxinc/nginx-unprivileged:1.27-alpine` |
 | Released By | _______________ |
 | Release Date | _______________ |
 | Dashboard Verified | ☐ Yes / ☐ No |

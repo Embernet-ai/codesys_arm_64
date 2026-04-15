@@ -84,8 +84,8 @@ securityContext:
 sidecarProxy:
   enabled: false
   image:
-    repository: "nginx"
-    tag: "1.25-alpine"
+    repository: "nginxinc/nginx-unprivileged"
+    tag: "1.27-alpine"
     pullPolicy: IfNotPresent
   listenPort: 8081
   upstream:
