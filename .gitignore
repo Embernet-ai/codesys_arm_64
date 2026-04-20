@@ -1,0 +1,34 @@
+# Helm packaged charts — belong on gh-pages only
+*.tgz
+
+# Helm repo index — belongs on gh-pages only
+index.yaml
+
+# Docker images
+images/*.tar
+images/*.tar.gz
+
+# Kubernetes secrets
+k8s/**/secrets.yaml
+k8s/**/*secret*.yaml
+
+# Local / IDE
+.env
+.env.local
+*.local
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs / temp
+*.log
+logs/
+tmp/
+temp/
+*.tmp
