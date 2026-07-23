@@ -64,3 +64,15 @@ embernet.ai/gui-port: {{ .Values.sidecarProxy.listenPort | quote }}
 embernet.ai/gui-port: {{ .Values.gui.port | default .Values.service.port | quote }}
 {{- end }}
 {{- end }}
+
+{{/*
+Tenant labels — injected by the dashboard (embernet.ai/tenant, deployed-by,
+deployment-id). Rendered onto BOTH the pod template and the Service so tenant-
+scoped views (services.go:226) and POD SHELL (shell.go:602) both see the app.
+Without embernet.ai/tenant on the Service the app is SuperAdmin-only. Spec §2/§7.
+*/}}
+{{- define "codesys-pod.tenantLabels" -}}
+{{- with .Values.tenantLabels }}
+{{- toYaml . }}
+{{- end }}
+{{- end }}
