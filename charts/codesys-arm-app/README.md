@@ -36,7 +36,7 @@ helm repo add embernet https://embernet-ai.github.io/codesys_arm_64
 helm repo update
 
 # Install the chart
-helm install my-codesys embernet/codesys-pod
+helm install my-codesys embernet/codesys-arm-app
 ```
 
 ### Manual Installation
@@ -49,7 +49,7 @@ helm install my-codesys embernet/codesys-pod
 
 2. Install locally:
    ```bash
-   helm install codesys ./charts/codesys-pod
+   helm install codesys ./charts/codesys-arm-app
    ```
 
 ## Configuration

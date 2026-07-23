@@ -1,6 +1,31 @@
-# Changelog — codesys-pod (ARM32)
+# Changelog — codesys-arm-app (ARM32)
 
 All notable changes to the CODESYS Control ARM32 Helm chart.
+
+---
+
+## [1.3.4] — 2026-07-23
+
+### Changed (BREAKING — catalog rename)
+- **Chart renamed `codesys-pod` → `codesys-arm-app`** to drop the "pod" suffix and
+  match the AMD sibling `codesys-app` naming convention.
+  - Chart directory `charts/codesys-pod` → `charts/codesys-arm-app`
+  - `catalog.cattle.io/release-name`: `codesys-pod` → `codesys-arm-app`
+  - `catalog.cattle.io/display-name`: `CODESYS Control ARM32` → `CODESYS Control SL (ARM64)`
+  - Template helper prefix `codesys-pod.*` → `codesys-arm-app.*`
+- **Catalog index deprecation:** the old `codesys-pod` entries are removed from the
+  published `index.yaml`; the publish workflow strips them from the `--merge` pass so
+  they are not resurrected.
+
+### Migration Note
+- Existing live releases named `codesys-pod-<node>` will NOT `helm upgrade` across the
+  rename (Helm keys releases by name). They must be reinstalled under the new chart name
+  as a separate migration.
+
+### No Change
+- App version remains `4.20.0.0`
+- Multi-instance behavior preserved (Service name = `.Release.Name`; dashboard
+  `codesys*` multiInstanceChart prefix still matches `codesys-arm-app`)
 
 ---
 

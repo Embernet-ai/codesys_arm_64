@@ -1,4 +1,4 @@
-# 🔥 Release Checklist — codesys-pod (ARM32)
+# 🔥 Release Checklist — codesys-arm-app (ARM32)
 
 **EmberNET Helm Chart Release Protocol**
 *Fireball Industries — Production Deployment Standard*
@@ -15,7 +15,7 @@ The EmberNET Industrial Dashboard discovers apps by scanning pod and service lab
 
 **CODESYS ARM32-specific integration flow:**
 
-1. Dashboard scans for pods with `embernet.ai/store-app: "true"` → finds `codesys-pod`
+1. Dashboard scans for pods with `embernet.ai/store-app: "true"` → finds `codesys-arm-app`
 2. Dashboard reads `embernet.ai/gui-type: "web"` → renders as iframe-able web app
 3. Dashboard reads `embernet.ai/gui-port: "8080"` (or `"8081"` with sidecar) → proxies to correct port
 4. Dashboard embeds CODESYS WebVisu via iframe through Rancher's K8s API proxy
@@ -35,13 +35,13 @@ The EmberNET Industrial Dashboard discovers apps by scanning pod and service lab
 
 ### 1. Version Verification
 
-- [ ] `charts/codesys-pod/Chart.yaml` → `version` has been bumped appropriately
+- [ ] `charts/codesys-arm-app/Chart.yaml` → `version` has been bumped appropriately
   - Patch (`x.x.+1`): bug fixes, config tweaks
   - Minor (`x.+1.0`): new features, non-breaking config additions
   - Major (`+1.0.0`): breaking changes, image version jumps
-- [ ] `charts/codesys-pod/Chart.yaml` → `appVersion` matches the latest stable CODESYS release
+- [ ] `charts/codesys-arm-app/Chart.yaml` → `appVersion` matches the latest stable CODESYS release
   - Format: `"<VERSION>"` (e.g., `"4.20.0.0"`)
-- [ ] `charts/codesys-pod/values.yaml` → `installerUrl` matches the version in `appVersion`
+- [ ] `charts/codesys-arm-app/values.yaml` → `installerUrl` matches the version in `appVersion`
 - [ ] `catalog.cattle.io/upstream-version` annotation in `Chart.yaml` matches `appVersion`
 - [ ] CODESYS installer package URL verified to exist:
   ```bash
@@ -61,20 +61,20 @@ All four labels MUST appear on **pod template labels** AND **Service labels**.
 |-------|---------------|-----------|
 | `embernet.ai/store-app` | `"true"` | ☐ |
 | `embernet.ai/gui-type` | `"web"` | ☐ |
-| `embernet.ai/app-name` | `"codesys-pod"` | ☐ |
+| `embernet.ai/app-name` | `"codesys-arm-app"` | ☐ |
 | `embernet.ai/gui-port` | `"8080"` (or `"8081"` with sidecar) | ☐ |
 
 **Verification command:**
 ```bash
-helm template test-release charts/codesys-pod | grep -c "embernet.ai/"
+helm template test-release charts/codesys-arm-app | grep -c "embernet.ai/"
 # Expected: 8 (4 labels × 2 resources: service + pod template)
 # Note: installerUrl also contains "embernet.ai" — count actual label lines
 ```
 
-- [ ] Labels present on pod template (deployment.yaml via `codesys-pod.storeLabels` helper)
-- [ ] Labels present on Service (service.yaml via `codesys-pod.storeLabels` helper)
+- [ ] Labels present on pod template (deployment.yaml via `codesys-arm-app.storeLabels` helper)
+- [ ] Labels present on Service (service.yaml via `codesys-arm-app.storeLabels` helper)
 - [ ] `gui-port` switches to sidecar port when `sidecarProxy.enabled: true`
-- [ ] Labels generated via `codesys-pod.storeLabels` helper (NOT hardcoded)
+- [ ] Labels generated via `codesys-arm-app.storeLabels` helper (NOT hardcoded)
 
 ### 3. Network Configuration
 
@@ -87,17 +87,17 @@ helm template test-release charts/codesys-pod | grep -c "embernet.ai/"
 **Verification:**
 ```bash
 # Default (hostNetwork: true)
-helm template test-release charts/codesys-pod | grep -E "hostNetwork|dnsPolicy|hostPort"
+helm template test-release charts/codesys-arm-app | grep -E "hostNetwork|dnsPolicy|hostPort"
 
 # Override (hostNetwork: false)
-helm template test-release charts/codesys-pod --set network.hostNetwork=false | grep -E "hostNetwork|dnsPolicy|hostPort"
+helm template test-release charts/codesys-arm-app --set network.hostNetwork=false | grep -E "hostNetwork|dnsPolicy|hostPort"
 ```
 
 ### 4. Service Configuration
 
 - [ ] Service type is `ClusterIP` (default)
-- [ ] Service name uses `{{ include "codesys-pod.fullname" . }}` helper
-- [ ] Service selector uses `{{ include "codesys-pod.selectorLabels" . }}`
+- [ ] Service name uses `{{ include "codesys-arm-app.fullname" . }}` helper
+- [ ] Service selector uses `{{ include "codesys-arm-app.selectorLabels" . }}`
 - [ ] `nodeSelector: {}` exists in values.yaml and is wired into Deployment
 - [ ] Service exposes all three ports: gateway (1217), opcua (4840), webvisu (8080)
 
@@ -122,11 +122,11 @@ CODESYS WebVisu is a **server-rendered HTML5 HMI** — NOT a complex SPA.
 
 ### 6. Chart Linting & Templating
 
-- [ ] `helm lint charts/codesys-pod` passes clean (0 errors)
-- [ ] `helm template test-release charts/codesys-pod` renders without errors
-- [ ] `helm template test-release charts/codesys-pod --set network.hostNetwork=false` renders without errors
-- [ ] `helm template test-release charts/codesys-pod --set sidecarProxy.enabled=true` renders without errors
-- [ ] `helm template test-release charts/codesys-pod --set persistence.enabled=false` renders without errors
+- [ ] `helm lint charts/codesys-arm-app` passes clean (0 errors)
+- [ ] `helm template test-release charts/codesys-arm-app` renders without errors
+- [ ] `helm template test-release charts/codesys-arm-app --set network.hostNetwork=false` renders without errors
+- [ ] `helm template test-release charts/codesys-arm-app --set sidecarProxy.enabled=true` renders without errors
+- [ ] `helm template test-release charts/codesys-arm-app --set persistence.enabled=false` renders without errors
 
 ---
 
@@ -139,7 +139,7 @@ CODESYS WebVisu is a **server-rendered HTML5 HMI** — NOT a complex SPA.
 - [ ] Includes `workflow_dispatch:` for manual triggers
 - [ ] Uses `azure/setup-helm@v4`
 - [ ] Uses `peaceiris/actions-gh-pages@v4`
-- [ ] Packages chart from `charts/codesys-pod` directory
+- [ ] Packages chart from `charts/codesys-arm-app` directory
 - [ ] Indexes with correct URL: `https://embernet-ai.github.io/codesys_arm_64/`
 - [ ] Has lint job that runs before publish job
 
@@ -187,10 +187,10 @@ After the workflow runs:
 
 ```bash
 # Install the chart
-helm install codesys charts/codesys-pod -n industrial --create-namespace
+helm install codesys charts/codesys-arm-app -n industrial --create-namespace
 
 # Verify pod is running
-kubectl get pods -n industrial -l app.kubernetes.io/name=codesys-pod
+kubectl get pods -n industrial -l app.kubernetes.io/name=codesys-arm-app
 
 # Check all containers are ready (1/1 or 2/2 with sidecar)
 kubectl get pods -n industrial -l embernet.ai/store-app=true
@@ -229,8 +229,8 @@ nc -zv <NODE-IP> 4840
 
 ## Rancher Catalog Annotations Verification
 
-- [ ] `catalog.cattle.io/display-name` is `"CODESYS Control ARM32"`
-- [ ] `catalog.cattle.io/release-name` is `"codesys-pod"`
+- [ ] `catalog.cattle.io/display-name` is `"CODESYS Control SL (ARM64)"`
+- [ ] `catalog.cattle.io/release-name` is `"codesys-arm-app"`
 - [ ] `catalog.cattle.io/certified` is `"partner"`
 - [ ] `catalog.cattle.io/namespace` is `"industrial"`
 - [ ] `catalog.cattle.io/os` is `"linux"`

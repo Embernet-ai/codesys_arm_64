@@ -20,7 +20,7 @@ jobs:
       - name: Install Helm
         uses: azure/setup-helm@v4
       - name: Lint chart
-        run: helm lint charts/codesys-pod
+        run: helm lint charts/codesys-arm-app
 
   publish:
     needs: lint
@@ -44,7 +44,7 @@ jobs:
       - name: Package chart
         run: |
           mkdir -p .deploy
-          helm package charts/codesys-pod -d .deploy
+          helm package charts/codesys-arm-app -d .deploy
           # Fetch existing index from gh-pages and merge (preserves old versions)
           curl -sSL https://embernet-ai.github.io/codesys_arm_64/index.yaml -o .deploy/existing-index.yaml || true
           # Validate the downloaded file is actual YAML (not a 404 HTML page)
@@ -57,6 +57,19 @@ jobs:
             helm repo index .deploy --url https://embernet-ai.github.io/codesys_arm_64/
           fi
           rm -f .deploy/existing-index.yaml
+          # DEPRECATION: the chart was renamed codesys-pod -> codesys-arm-app.
+          # The --merge above pulls the live index which still carries the old
+          # codesys-pod entries; strip them so the rename is not re-resurrected.
+          # yq is preinstalled on ubuntu-latest GitHub runners.
+          if grep -q '^  codesys-pod:' .deploy/index.yaml; then
+            echo "Stripping deprecated codesys-pod entries from index"
+            yq -i 'del(.entries["codesys-pod"])' .deploy/index.yaml
+          fi
+          # Fail the publish if codesys-pod somehow survives the strip.
+          if grep -q 'codesys-pod' .deploy/index.yaml; then
+            echo "ERROR: codesys-pod still present in index after strip" >&2
+            exit 1
+          fi
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4

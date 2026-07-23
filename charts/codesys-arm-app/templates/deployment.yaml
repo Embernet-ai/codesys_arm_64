@@ -1,25 +1,25 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "codesys-pod.fullname" . }}
+  name: {{ include "codesys-arm-app.fullname" . }}
   labels:
-    {{- include "codesys-pod.labels" . | nindent 4 }}
+    {{- include "codesys-arm-app.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount | default 1 }}
   strategy:
     type: Recreate
   selector:
     matchLabels:
-      {{- include "codesys-pod.selectorLabels" . | nindent 6 }}
+      {{- include "codesys-arm-app.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        {{- include "codesys-pod.selectorLabels" . | nindent 8 }}
-        {{- include "codesys-pod.storeLabels" . | nindent 8 }}
+        {{- include "codesys-arm-app.selectorLabels" . | nindent 8 }}
+        {{- include "codesys-arm-app.storeLabels" . | nindent 8 }}
         # app label = registered Flux service name (spec §7 cross-site launch)
         app: {{ .Release.Name | quote }}
         {{- with .Values.tenantLabels }}
-        {{- include "codesys-pod.tenantLabels" $ | nindent 8 }}
+        {{- include "codesys-arm-app.tenantLabels" $ | nindent 8 }}
         {{- end }}
       annotations:
         {{- if .Values.sidecarProxy.enabled }}
@@ -262,7 +262,7 @@ spec:
         - name: data
           {{- if .Values.persistence.enabled }}
           persistentVolumeClaim:
-            claimName: {{ include "codesys-pod.fullname" . }}
+            claimName: {{ include "codesys-arm-app.fullname" . }}
           {{- else }}
           emptyDir: {}
           {{- end }}
@@ -271,7 +271,7 @@ spec:
         {{- if .Values.sidecarProxy.enabled }}
         - name: sidecar-proxy-config
           configMap:
-            name: {{ include "codesys-pod.fullname" . }}-sidecar-proxy
+            name: {{ include "codesys-arm-app.fullname" . }}-sidecar-proxy
         - name: sidecar-proxy-tmp
           emptyDir:
             sizeLimit: 64Mi

@@ -9,14 +9,14 @@ metadata:
   # instance from being reachable. See App Store chart spec §4.
   name: {{ .Release.Name }}
   labels:
-    {{- include "codesys-pod.labels" . | nindent 4 }}
-    {{- include "codesys-pod.storeLabels" . | nindent 4 }}
+    {{- include "codesys-arm-app.labels" . | nindent 4 }}
+    {{- include "codesys-arm-app.storeLabels" . | nindent 4 }}
     # app label must match the registered Flux service name for cross-site launch
     # (client.go:421-425); without it a remote-site pod falls back to a
     # cluster-local FQDN that will not resolve. Spec §7.
     app: {{ .Release.Name | quote }}
     {{- with .Values.tenantLabels }}
-    {{- include "codesys-pod.tenantLabels" $ | nindent 4 }}
+    {{- include "codesys-arm-app.tenantLabels" $ | nindent 4 }}
     {{- end }}
   annotations:
     # Flux/Ziti mesh exposure (WebVisu) so the remote-site dashboard can dial it
@@ -47,4 +47,4 @@ spec:
       name: proxy-http
     {{- end }}
   selector:
-    {{- include "codesys-pod.selectorLabels" . | nindent 4 }}
+    {{- include "codesys-arm-app.selectorLabels" . | nindent 4 }}
